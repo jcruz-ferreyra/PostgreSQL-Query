@@ -1,0 +1,47 @@
+# Ignore system and IDE files
+.DS_Store
+Thumbs.db
+.idea/
+
+# Ignore Python-specific files
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Ignore virtual environments
+venv/
+env/
+/.env
+.env
+
+# Ignore log files and temp files
+*.log
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Ignore compiled code and binary files
+*.dll
+*.exe
+*.o
+*.so
+
+# Ignore package managers and dependencies
+node_modules/
+bower_components/
+*.lock
+yarn.lock
+package-lock.json
+
+# Ignore database files
+*.sqlite
+*.db
+*.sql
+
+# Ignore editor-specific files
+.vscode/
