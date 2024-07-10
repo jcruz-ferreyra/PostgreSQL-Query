@@ -1,0 +1,147 @@
+---
+title: "Untitled"
+author: "Área de Estadística - EMR"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(sf)
+library(osmdata)
+library(tmap)
+library(tmaptools)
+library(ggmap)
+```
+
+```{r}
+main_path <- getwd()
+```
+
+```{r}
+geodf_recorridos <- read_sf(paste0(
+  main_path, "/recorridos-stup.gml"
+))
+```
+
+```{r}
+name_changer <- function(df, a, b){
+  df$LINEA[df$LINEA==a]<-b
+  return(df)
+}
+```
+
+```{r}
+lineas_list <- list(
+  list("102", "102 144"),
+  list("102R", "102"),
+  list("116", "116 129"),
+  list("120", "120"),
+  list("121", "121"),
+  list("129", "129 134 135"),
+  list("130", "130 146"),
+  list("133", "133 125"),
+  list("138", "138 139"),
+  list("143", "143 136 137"),
+  list("145", "145 133"),
+  list("EAO", "Enlace Avellaneda"),
+  list("ENO", "ENOE"),
+  list("Ronda", "RCS")
+)
+```
+
+```{r}
+total <- length(lineas_list)
+for(i in 1:total){
+  geodf_recorridos <- name_changer(geodf_recorridos, lineas_list[[i]][[1]], lineas_list[[i]][[2]])
+}
+```
+
+```{r}
+geodf_recorridos
+```
+
+```{r}
+vect <- geodf_recorridos$BANDERA
+geodf_recorridos$BANDERA[vect=="AERO"] <- "Aeropuerto"
+geodf_recorridos$BANDERA[vect=="SOLDINI"] <- "Roja"
+geodf_recorridos$BANDERA[vect=="CABIN 9"] <- "Negra"
+```
+
+```{r}
+geodf_recorridos2 <- geodf_recorridos %>% 
+  mutate(LINEA=gsub("\\s", "-", LINEA)) %>% 
+  mutate(LINEA_BANDERA=paste0(tolower(LINEA),"_",tolower(BANDERA))) %>% 
+  select(LINEA_BANDERA, SENTIDO)
+```
+
+```{r}
+geodf_recorridos2
+```
+
+Antes lo que hicimos fue unificar ida y vuelta como un solo recorrido. Ahora vamos a usar realmente un solo recorrido.
+```{r}
+# geodf_recorridos3 <- geodf_recorridos2 %>% 
+#   group_by(LINEA_BANDERA) %>% 
+#   summarise(geometry=st_union(the_geom))
+# 
+# geodf_recorridos3
+```
+
+Nos quedamos con solo un recorrido, ya que evita problemas circulares de que el algoritmo interprete confusamente los puntos que del recorrido de ida y de vuelta.
+```{r}
+geodf_recorridos3 <- geodf_recorridos2 %>%
+  filter(SENTIDO=="Ida") %>% 
+  arrange(LINEA_BANDERA)
+
+geodf_recorridos3
+```
+
+```{r}
+st_write(geodf_recorridos3, paste0(main_path, "/recorridos-stup-ida.gml"))
+```
+
+```{r}
+vect_lineas <- geodf_recorridos3 %>% 
+  pull(LINEA_BANDERA) %>% 
+  unique()
+
+for(linea in vect_lineas){
+  geom_linea <- geodf_recorridos3 %>% 
+    filter(LINEA_BANDERA==linea)
+  geom_linea <- geom_linea[["the_geom"]]
+  
+  geom_pts <- geom_linea %>% 
+    st_transform(22185) %>%
+    st_line_sample(density=.003) %>%
+    st_transform(4326) %>% 
+    st_cast("POINT")
+  
+  geodf_pts <- geom_pts %>% 
+    data.frame() %>% 
+    cbind(PointId = 0:(length(geom_pts)-1)) %>% 
+    select(PointId, geometry)
+  
+  st_write(geodf_pts, paste0(main_path, "/recorridos-stup-puntos/puntos-", linea, ".gml"))
+}
+```
+
+```{r}
+plot(geom_linea)
+plot(geom_pts, col="red", add=T)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
